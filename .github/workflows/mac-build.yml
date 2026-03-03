@@ -3,6 +3,7 @@ name: Build Mac App
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:   # <-- ADD THIS LINE TO ENABLE MANUAL RUN
 
 jobs:
   build-mac:
