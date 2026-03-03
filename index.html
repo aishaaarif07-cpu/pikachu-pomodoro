@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Pikachu Pomodoro</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        /* WIDGET */
+        .widget {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 25px;
+            overflow: hidden;
+            box-shadow: 0 0 8px #ffcc00,
+                0 0 15px #ffeb3b,
+                0 0 25px #ffe600;
+            transition: width 0.1s, height 0.1s;
+
+            /* ✨ DRAG ENTIRE ELECTRON WINDOW */
+            -webkit-app-region: drag;
+        }
+
+        /* PROGRESS BORDER */
+        .widget::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 25px;
+            padding: 4px;
+            background: conic-gradient(#ffcc00 0deg, transparent 0deg);
+            -webkit-mask:
+                linear-gradient(#000 0 0) content-box,
+                linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        @keyframes flicker {
+            0% {
+                box-shadow: 0 0 6px #ffcc00;
+            }
+
+            50% {
+                box-shadow: 0 0 18px #ffea00;
+            }
+
+            100% {
+                box-shadow: 0 0 6px #ffcc00;
+            }
+        }
+
+        .widget.flicker {
+            animation: flicker 0.3s ease-in-out 5;
+        }
+
+        .widget img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 25px;
+            box-shadow: 0 0 6px #ffcc00,
+                0 0 12px #ffeb3b,
+                0 0 18px #ffe600 inset;
+        }
+
+        /* MODE TEXT */
+        .mode {
+            position: absolute;
+            top: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: bold;
+            color: #ffeb3b;
+            text-shadow: 2px 2px 0 #000,
+                -2px 2px 0 #000,
+                2px -2px 0 #000,
+                -2px -2px 0 #000;
+            z-index: 2;
+            -webkit-app-region: no-drag;
+        }
+
+        /* TIMER */
+        .timer {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: bold;
+            color: #ffeb3b;
+            text-shadow: 4px 4px 0 #000,
+                -4px 4px 0 #000,
+                4px -4px 0 #000,
+                -4px -4px 0 #000,
+                0 0 10px #ffcc00;
+            z-index: 2;
+            -webkit-app-region: no-drag;
+        }
+
+        /* BUTTONS */
+        .controls {
+            position: absolute;
+            bottom: 40px;
+            width: 100%;
+            text-align: center;
+            z-index: 2;
+            -webkit-app-region: no-drag;
+        }
+
+        button {
+            margin: 5px;
+            border-radius: 15px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px #999;
+            -webkit-app-region: no-drag;
+        }
+
+        button:active {
+            transform: translateY(4px) scale(0.95);
+            box-shadow: 0 2px #666;
+        }
+
+        .start {
+            background: #4caf50;
+            color: white;
+        }
+
+        .pause {
+            background: #ff9800;
+            color: white;
+        }
+
+        .reset {
+            background: #f44336;
+            color: white;
+        }
+
+        .resize-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            right: 0;
+            bottom: 0;
+            cursor: se-resize;
+            z-index: 4;
+            -webkit-app-region: no-drag;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="widget" id="widget">
+        <img src="pikachu.png">
+
+        <div class="mode" id="mode">Focus Session</div>
+        <div class="timer" id="timer">45:00</div>
+
+        <div class="controls">
+            <button class="start" onclick="startTimer()">Start</button>
+            <button class="pause" onclick="pauseTimer()">Pause</button>
+            <button class="reset" onclick="resetTimer()">Reset</button>
+        </div>
+
+        <div class="resize-handle" id="resizeHandle"></div>
+    </div>
+
+    <audio id="pikaSound" src="pikachu.mp3"></audio>
+
+    <script>
+        let focusTime = 45 * 60;
+        let breakTime = 5 * 60;
+        let currentTime = focusTime;
+        let totalTime = focusTime;
+        let isRunning = false;
+        let isFocus = true;
+        let interval;
+
+        const timerDisplay = document.getElementById("timer");
+        const modeDisplay = document.getElementById("mode");
+        const widget = document.getElementById("widget");
+        const sound = document.getElementById("pikaSound");
+        const modeText = document.querySelector(".mode");
+        const controls = document.querySelector(".controls");
+        const resizeHandle = document.getElementById("resizeHandle");
+
+        function playSound() {
+            sound.currentTime = 0;
+            sound.play();
+        }
+
+        function updateDisplay() {
+            let minutes = Math.floor(currentTime / 60);
+            let seconds = currentTime % 60;
+            seconds = seconds < 10 ? "0" + seconds : seconds;
+            timerDisplay.innerText = minutes + ":" + seconds;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            let progress = (1 - currentTime / totalTime) * 360;
+            widget.style.background = `conic-gradient(#ffcc00 ${progress}deg, transparent ${progress}deg)`;
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            playSound();
+            isRunning = true;
+            interval = setInterval(() => {
+                if (currentTime > 0) {
+                    currentTime--;
+                    updateDisplay();
+                } else {
+                    switchMode();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            playSound();
+            isRunning = false;
+            clearInterval(interval);
+        }
+
+        function resetTimer() {
+            playSound();
+            pauseTimer();
+            currentTime = isFocus ? focusTime : breakTime;
+            totalTime = currentTime;
+            updateDisplay();
+        }
+
+        function switchMode() {
+            widget.classList.add("flicker");
+            playSound();
+            isFocus = !isFocus;
+            currentTime = isFocus ? focusTime : breakTime;
+            totalTime = currentTime;
+            modeDisplay.innerText = isFocus ? "Focus Session" : "Break Time";
+            updateDisplay();
+            setTimeout(() => { widget.classList.remove("flicker"); }, 1500);
+        }
+
+        updateDisplay();
+
+        /* RESIZE LOGIC */
+        let isResizing = false;
+        let startWidth, startHeight, startX, startY;
+
+        resizeHandle.addEventListener("mousedown", e => {
+            isResizing = true;
+            startWidth = widget.offsetWidth;
+            startHeight = widget.offsetHeight;
+            startX = e.clientX;
+            startY = e.clientY;
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        document.addEventListener("mousemove", e => {
+            if (!isResizing) return;
+            let newWidth = startWidth + (e.clientX - startX);
+            let newHeight = startHeight + (e.clientY - startY);
+
+            newWidth = Math.max(150, newWidth);
+            newHeight = Math.max(150, newHeight);
+
+            widget.style.width = newWidth + "px";
+            widget.style.height = newHeight + "px";
+
+            let scale = newWidth / 300;
+            timerDisplay.style.fontSize = 50 * scale + "px";
+            modeText.style.fontSize = 20 * scale + "px";
+
+            const buttons = controls.querySelectorAll("button");
+            buttons.forEach(btn => {
+                btn.style.fontSize = 14 * scale + "px";
+                btn.style.padding = `${8 * scale}px ${16 * scale}px`;
+                btn.style.borderRadius = 15 * scale + "px";
+            });
+
+            timerDisplay.style.top = 20 * scale + "%";
+            controls.style.bottom = 40 * scale + "px";
+        });
+
+        document.addEventListener("mouseup", () => { isResizing = false; });
+    </script>
+
+</body>
+
+</html>
