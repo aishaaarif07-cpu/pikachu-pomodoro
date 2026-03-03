@@ -29,6 +29,21 @@
             "target": "nsis",
             "icon": "assets/pikachu-icon.ico",
             "forceCodeSigning": false
+        },
+        "mac": {
+            "target": "dmg",
+            "icon": "assets/pikachu-icon.icns"
         }
-    }
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/aishaaarif07-cpu/pikachu-pomodoro.git"
+    },
+    "keywords": [],
+    "license": "ISC",
+    "type": "commonjs",
+    "bugs": {
+        "url": "https://github.com/aishaaarif07-cpu/pikachu-pomodoro/issues"
+    },
+    "homepage": "https://github.com/aishaaarif07-cpu/pikachu-pomodoro#readme"
 }
