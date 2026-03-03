@@ -5,20 +5,26 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-mac:
     runs-on: macos-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-      - name: Install dependencies
-        run: npm install
-      - name: Build Mac app
-        run: npm run dist
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: MacApp
-          path: dist/*.dmg
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build Mac app
+      run: npm run dist -- --mac
+
+    - name: Upload Mac DMG
+      uses: actions/upload-artifact@v3
+      with:
+        name: Pikachu-Pomodoro-mac
+        path: dist/*.dmg
