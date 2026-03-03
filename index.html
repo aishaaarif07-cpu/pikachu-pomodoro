@@ -94,10 +94,6 @@
 
         /* TIMER */
         .timer {
-            position: absolute;
-            top: 20%;
-            left: 50%;
-            transform: translateX(-50%);
             font-weight: bold;
             color: #ffeb3b;
             text-shadow: 4px 4px 0 #000,
@@ -105,8 +101,6 @@
                 4px -4px 0 #000,
                 -4px -4px 0 #000,
                 0 0 10px #ffcc00;
-            z-index: 2;
-            -webkit-app-region: no-drag;
         }
 
         /* BUTTONS */
@@ -160,6 +154,37 @@
             z-index: 4;
             -webkit-app-region: no-drag;
         }
+
+        .timer-wrapper {
+            position: absolute;
+            top: 22%;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 25px;
+            /* More spacing */
+            width: 80%;
+            z-index: 2;
+            -webkit-app-region: no-drag;
+        }
+
+        .adjust {
+            background: #ffcc00;
+            color: black;
+            font-weight: bold;
+            padding: 10px 16px;
+            border-radius: 15px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px #999;
+            min-width: 50px;
+        }
+
+        .adjust:active {
+            transform: translateY(2px);
+        }
     </style>
 </head>
 
@@ -169,7 +194,11 @@
         <img src="pikachu.png">
 
         <div class="mode" id="mode">Focus Session</div>
-        <div class="timer" id="timer">45:00</div>
+        <div class="timer-wrapper">
+            <button class="adjust minus" onclick="adjustTime(-5)">-5</button>
+            <div class="timer" id="timer">45:00</div>
+            <button class="adjust plus" onclick="adjustTime(5)">+5</button>
+        </div>
 
         <div class="controls">
             <button class="start" onclick="startTimer()">Start</button>
@@ -183,7 +212,8 @@
     <audio id="pikaSound" src="pikachu.mp3"></audio>
 
     <script>
-        let focusTime = 45 * 60;
+        let focusMinutes = 45;
+        let focusTime = focusMinutes * 60;
         let breakTime = 5 * 60;
         let currentTime = focusTime;
         let totalTime = focusTime;
@@ -209,6 +239,7 @@
             let seconds = currentTime % 60;
             seconds = seconds < 10 ? "0" + seconds : seconds;
             timerDisplay.innerText = minutes + ":" + seconds;
+            timerDisplay.style.fontSize = "50px";
             updateProgress();
         }
 
@@ -240,6 +271,7 @@
         function resetTimer() {
             playSound();
             pauseTimer();
+            focusTime = focusMinutes * 60;
             currentTime = isFocus ? focusTime : breakTime;
             totalTime = currentTime;
             updateDisplay();
@@ -294,11 +326,35 @@
                 btn.style.borderRadius = 15 * scale + "px";
             });
 
-            timerDisplay.style.top = 20 * scale + "%";
+            const adjustButtons = document.querySelectorAll(".adjust");
+            adjustButtons.forEach(btn => {
+                btn.style.fontSize = 14 * scale + "px";
+                btn.style.padding = `${6 * scale}px ${10 * scale}px`;
+            });
+
             controls.style.bottom = 40 * scale + "px";
         });
 
         document.addEventListener("mouseup", () => { isResizing = false; });
+        function adjustTime(amount) {
+            if (isRunning) return; // DO NOT allow adjustment while running
+
+            if (!isFocus) return; // Only allow adjusting focus time
+
+            focusMinutes += amount;
+
+            // Prevent going below 5 minutes
+            if (focusMinutes < 5) focusMinutes = 5;
+
+            // Prevent going above 120 minutes
+            if (focusMinutes > 120) focusMinutes = 120;
+
+            focusTime = focusMinutes * 60;
+            currentTime = focusTime;
+            totalTime = focusTime;
+
+            updateDisplay();
+        }
     </script>
 
 </body>
